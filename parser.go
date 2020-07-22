@@ -34,7 +34,7 @@ func (p *Parser) FindTldOffset(domain_parts []string) int {
 				break
 			}
 		}
-		counter = counter - 1
+		counter--
 	}
 
 	return 0
@@ -58,4 +58,10 @@ func (p *Parser) GetFQDN(domain string) string {
 	domain_parts := strings.Split(domain, ".")
 	offset := p.FindTldOffset(domain_parts)
 	return strings.Join(domain_parts[offset:], ".")
+}
+
+func (p *Parser) GetTld(domain string) string {
+	domain_parts := strings.Split(domain, ".")
+	offset := p.FindTldOffset(domain_parts)
+	return strings.Join(domain_parts[offset + 1:], ".")
 }
