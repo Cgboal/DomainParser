@@ -3,6 +3,9 @@ package parser
 import (
 	"index/suffixarray"
 	"strings"
+	"net/http"
+	"io/ioutil"
+	"bytes"
 )
 
 type Parser struct {
@@ -10,7 +13,15 @@ type Parser struct {
 }
 
 func NewDomainParser() Parser {
-	sa := CreateTLDIndex()
+	data, err := ioutil.ReadFile("/tmp/.tlds")
+	if err != nil {
+		data, _ = download()
+		ioutil.WriteFile("/tmp/.tlds", data, 0644)
+	}
+
+	tlds := strings.Split(string(data), "\n")
+
+	sa := CreateTLDIndex(tlds)
 	return Parser{
 		sa: sa,
 	}
@@ -64,4 +75,30 @@ func (p *Parser) GetTld(domain string) string {
 	domain_parts := strings.Split(domain, ".")
 	offset := p.FindTldOffset(domain_parts)
 	return strings.Join(domain_parts[offset + 1:], ".")
+}
+
+func download() ([]byte, error) {
+	u := "https://publicsuffix.org/list/public_suffix_list.dat"
+	resp, err := http.Get(u)
+	if err != nil {
+		return []byte(""), err
+	}
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	lines := strings.Split(string(body), "\n")
+	var buffer bytes.Buffer
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "// ===BEGIN PRIVATE DOMAINS") {
+			break
+		}
+		if line != "" && !strings.HasPrefix(line, "//") {
+			buffer.WriteString(line)
+			buffer.WriteString("\n")
+		}
+	}
+
+	return buffer.Bytes(), nil
 }
