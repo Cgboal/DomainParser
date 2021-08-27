@@ -12,6 +12,12 @@ type Parser struct {
 	sa *suffixarray.Index
 }
 
+type Domain struct {
+	Subdomain string
+	Domain string
+	TLD string
+}
+
 func NewDomainParser() Parser {
 	data, err := ioutil.ReadFile("/tmp/.tlds")
 	if err != nil {
@@ -33,7 +39,6 @@ func (p *Parser) FindTldOffset(domain_parts []string) int {
 		start_point := len(domain_parts) - counter
 		if start_point < 0 {
 			return 0
-			break
 		}
 		tld_parts := strings.Join(domain_parts[len(domain_parts)-counter:], ".")
 
@@ -42,7 +47,6 @@ func (p *Parser) FindTldOffset(domain_parts []string) int {
 			offset := (len(domain_parts) - (counter +1))
 			if offset >= 0 {
 				return offset
-				break
 			}
 		}
 		counter--
@@ -50,6 +54,16 @@ func (p *Parser) FindTldOffset(domain_parts []string) int {
 
 	return 0
 
+}
+
+func (p *Parser) ParseDomain(domain string) Domain {
+	domain_parts := strings.Split(domain, ".")
+	offset := p.FindTldOffset(domain_parts)
+	return Domain{
+		Subdomain: strings.Join(domain_parts[:offset], "."),
+		Domain: domain_parts[offset],
+		TLD: strings.Join(domain_parts[offset + 1:], "."),
+	}
 }
 
 func (p *Parser) GetDomain(domain string) string{
